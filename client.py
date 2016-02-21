@@ -3,6 +3,8 @@ from ws4py import format_addresses, configure_logger
 import json
 import time
 import thread
+import argparse
+
 logger = configure_logger()
 class DummyClient(WebSocketClient):
     def opened(self):
@@ -23,7 +25,7 @@ class DummyClient(WebSocketClient):
                 options = ["search", "give"]
                 option_s = ""        
                 while option_s != "1" and option_s != "2": 
-                    option_s = (raw_input("\nwelcome to zu %s. are you \n1) searching for help?\n2) offering help?\n3) what is zu?\n4) who's available?\n"%username))
+                    option_s = (raw_input("\nwelcome to qq %s. are you \n1) searching for help?\n2) offering help?\n3) what is qq?\n4) who's available?\n"%username))
                 option = int(option_s)-1
                 print("YOUR OPTION WAS %s"%options[option])
                 tags = raw_input("enter hashtags (space separated) keywords. example would be redis tornado linux)\n")
@@ -64,8 +66,12 @@ class DummyClient(WebSocketClient):
             self.state = m["state"]
 
 if __name__ == '__main__':
+    parser = argparse.ArgumentParser(description='client for qq')
+    parser.add_argument('-host', action="store", dest="host", default="localhost")
+    parser.add_argument('-port', action="store", dest="port", default=9000)
+    options = parser.parse_args()
     try:
-        ws = DummyClient('ws://localhost:9000/ws', protocols=['http-only', 'chat'])
+        ws = DummyClient("ws://%s:%s/ws"%(options.host,options.port), protocols=['http-only', 'chat'])
         ws.connect()
         ws.run_forever()
     except KeyboardInterrupt:

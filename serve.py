@@ -19,7 +19,7 @@ class SocketHandler(websocket.WebSocketHandler):
           cl[self] = {"username": "unknown"}
         self.send({
           "state": "init",
-          "message": "you're connected to zu. cool."
+          "message": "you're connected to qq. cool."
           })
     def send(self, obj):
       self.write_message(
