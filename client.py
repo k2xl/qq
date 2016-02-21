@@ -6,6 +6,13 @@ import thread
 import argparse
 
 logger = configure_logger()
+parser = argparse.ArgumentParser(description='client for qq')
+parser.add_argument('-host', action="store", dest="host", default="localhost")
+parser.add_argument('-port', action="store", dest="port", default=9000)
+parser.add_argument('-username', action="store", dest="username")
+parser.add_argument('-give', action="store", dest="give")
+parser.add_argument('-search', action="store", dest="search")
+options = parser.parse_args()
 class DummyClient(WebSocketClient):
     def opened(self):
         logger.info("cool.")
@@ -18,12 +25,16 @@ class DummyClient(WebSocketClient):
     def state_machine(self):
         while self.is_connected:
             if self.state == "init":
-                username = ""
+                username = options.username
                 while len(username) < 1:
                     username = raw_input("username:")
 
                 options = ["search", "give"]
-                option_s = ""        
+                if "give" in options:
+                    option_s = "2"
+                elif "search" in options:
+                    option_s = "1"
+                    
                 while option_s != "1" and option_s != "2": 
                     option_s = (raw_input("\nwelcome to qq %s. are you \n1) searching for help?\n2) offering help?\n3) what is qq?\n4) who's available?\n"%username))
                 option = int(option_s)-1
@@ -66,10 +77,6 @@ class DummyClient(WebSocketClient):
             self.state = m["state"]
 
 if __name__ == '__main__':
-    parser = argparse.ArgumentParser(description='client for qq')
-    parser.add_argument('-host', action="store", dest="host", default="localhost")
-    parser.add_argument('-port', action="store", dest="port", default=9000)
-    options = parser.parse_args()
     try:
         ws = DummyClient("ws://%s:%s/ws"%(options.host,options.port), protocols=['http-only', 'chat'])
         ws.connect()

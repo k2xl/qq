@@ -1,4 +1,5 @@
 from tornado import websocket, web, ioloop
+import uuid
 import json
 
 search_map = {}
@@ -6,7 +7,7 @@ search_inverse_map = {}
 give_map = {}
 give_inverse_map = {}
 cl = {}
-rooms = {}
+room_map = {}
 class SocketHandler(websocket.WebSocketHandler):
     def check_origin(self, origin):
         return True
@@ -74,59 +75,88 @@ class SocketHandler(websocket.WebSocketHandler):
         if js["option"] == "search":
           self.register(search_map, search_inverse_map, js["tags"])
 
-          msg = "zu has you registered in system for searching for %s"%js["tags"]
+          msg = "qq has you registered in system for searching for %s"%js["tags"]
           matches = self.find_match(search_map, give_inverse_map)
           for match in matches:
             match.send({
+              "state": "in_chat",
               "message": "we found you a match. %s is looking for help with %s"%(self.username,search_map[self])
             })
             # race condition is probably possible if user leaves and we try to access give_map, probably need some locks?
+            room_obj = [match, self]
+            room_map[self] = room_obj
+            room_map[match] = room_obj
             self.send({
+              "state": "in_chat",
               "message": "we found you a match. %s is willing to help with %s"%(match.username,give_map[match])
             })
+            self.remove_from_maps(self)
+            self.remove_from_maps(match)
+            break
         else:
           self.register(give_map, give_inverse_map, js["tags"])
-          msg = "zu has you registered in system for offering help for %s"%js["tags"]
+          msg = "qq has you registered in system for offering help for %s"%js["tags"]
           matches = self.find_match(give_map, search_inverse_map)
           for match in matches:
+            room_obj = [match, self]
+            room_map[self] = room_obj
+            room_map[match] = room_obj
             self.send({
+              "state": "in_chat",
               "message": "we found you a match. %s is looking for help with %s"%(match.username,search_map[match])
             })
             # race condition is probably possible if user leaves and we try to access give_map, probably need some locks?
             match.send({
+              "state": "in_chat",
               "message": "we found you a match. %s is willing to help with %s"%(self.username,give_map[self])
             })
+            self.remove_from_maps(self)
+            self.remove_from_maps(match)
+            break
 
-      if len(matches) == 0:
-        self.send({
-          "state": "wait",
-          "success": True,
-          "message":"%s.\nbe patient... we'll notify when we find someone matching"%msg
-        })
+        if len(matches) == 0:
+          self.send({
+            "state": "wait",
+            "success": True,
+            "message":"%s.\nbe patient... we'll notify when we find someone matching"%msg
+          })
+      else:
+        # Regular message?
+        print("Regular message?")
+        if message not in js:
+          return send_error("No message found")
+
+        if self in room_map:
+          for person in room_map:
+            person.send("%s says: %s"%(self.username, js["message"]))
+
     
       return False
+    def remove_from_maps(self):
+      if self in room_map:
+          del room_map[self]
+      if self in search_map:
+        tags = search_map[self]
+        del search_map[self]
+      elif self in give_map:
+        tags = give_map[self]
+        del give_map[self]
 
+      for tag in tags:
+        if tag in search_inverse_map and self in search_inverse_map[tag]:
+          del search_inverse_map[tag][self]
+          if len(search_inverse_map[tag]) == 0:
+            del search_inverse_map[tag]
+        if tag in give_inverse_map and self in give_inverse_map[tag]:
+          del give_inverse_map[tag][self]
+          if len(give_inverse_map[tag]) == 0:
+            del give_inverse_map[tag]
     def on_close(self):
         print("Someone disconnected...")
         tags = []
         if self in cl:
           del cl[self]
-        if self in search_map:
-          tags = search_map[self]
-          del search_map[self]
-        elif self in give_map:
-          tags = give_map[self]
-          del give_map[self]
-
-        for tag in tags:
-          if tag in search_inverse_map and self in search_inverse_map[tag]:
-            del search_inverse_map[tag][self]
-            if len(search_inverse_map[tag]) == 0:
-              del search_inverse_map[tag]
-          if tag in give_inverse_map and self in give_inverse_map[tag]:
-            del give_inverse_map[tag][self]
-            if len(give_inverse_map[tag]) == 0:
-              del give_inverse_map[tag]
+        self.remove_from_maps(self)
         
 
 app = web.Application([
