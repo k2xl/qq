@@ -21,11 +21,17 @@ class DummyClient(WebSocketClient):
         thread.start_new_thread(self.state_machine, ())
     def cls(self):
         print(chr(27) + "[2J")
-
+    def send(self, msg):
+        super(DummyClient, self).send(json.dumps(msg))
     def state_machine(self):
         global args
         while self.is_connected:
-            if self.state == "init":
+            if self.state == "in_chat":
+                self.send({
+                    "type": "chat",
+                    "message": raw_input("say something:")
+                })
+            elif self.state == "init":
                 username = args.username
                 while username == None or len(username) < 1:
                     username = raw_input("username:")
@@ -54,7 +60,7 @@ class DummyClient(WebSocketClient):
                     "option": options[option],
                     "tags": tags
                 }
-                self.send(json.dumps(send_obj))
+                self.send((send_obj))
                 print("sent...")
                 self.state = "wait"
             else:
@@ -70,6 +76,7 @@ class DummyClient(WebSocketClient):
         print("Closed down", code, reason)
 
     def received_message(self, rec):
+        print(rec)
         m = json.loads(str(rec))
         if "error" in m:
             if "status_code" not in m:
@@ -81,6 +88,7 @@ class DummyClient(WebSocketClient):
         #if len(m) == 175:
         #    self.close(reason='Bye bye')
         if "state" in m:
+            self.cls()
             self.state = m["state"]
 
 if __name__ == '__main__':

@@ -17,7 +17,10 @@ class SocketHandler(websocket.WebSocketHandler):
 
     def open(self):
         if self not in cl:
-          cl[self] = {"username": "unknown"}
+          cl[self] = {
+            "username": "unknown",
+            "room": {}
+          }
         self.send({
           "state": "init",
           "message": "you're connected to qq. cool."
@@ -54,10 +57,11 @@ class SocketHandler(websocket.WebSocketHandler):
 
     def on_message(self, msg):
       print("got ",msg)
+      js = {}
       try:
         js = json.loads(msg)
       except Exception:
-        send_error(400, "not valid json")
+        self.send_error(400, "not valid json")
       
       if "type" not in js:
         return self.send_error(400, "missing type")
@@ -86,12 +90,14 @@ class SocketHandler(websocket.WebSocketHandler):
             room_obj = [match, self]
             room_map[self] = room_obj
             room_map[match] = room_obj
+            self.room = room_obj
+            match.room = room_obj
             self.send({
               "state": "in_chat",
               "message": "we found you a match. %s is willing to help with %s"%(match.username,give_map[match])
             })
-            self.remove_from_maps(self)
-            self.remove_from_maps(match)
+            self.remove_from_maps()
+            match.remove_from_maps()
             break
         else:
           self.register(give_map, give_inverse_map, js["tags"])
@@ -101,6 +107,8 @@ class SocketHandler(websocket.WebSocketHandler):
             room_obj = [match, self]
             room_map[self] = room_obj
             room_map[match] = room_obj
+            self.room = room_obj
+            match.room = room_obj
             self.send({
               "state": "in_chat",
               "message": "we found you a match. %s is looking for help with %s"%(match.username,search_map[match])
@@ -110,8 +118,8 @@ class SocketHandler(websocket.WebSocketHandler):
               "state": "in_chat",
               "message": "we found you a match. %s is willing to help with %s"%(self.username,give_map[self])
             })
-            self.remove_from_maps(self)
-            self.remove_from_maps(match)
+            self.remove_from_maps()
+            match.remove_from_maps()
             break
 
         if len(matches) == 0:
@@ -123,12 +131,13 @@ class SocketHandler(websocket.WebSocketHandler):
       else:
         # Regular message?
         print("Regular message?")
-        if message not in js:
+        if "message" not in js:
           return send_error("No message found")
-
-        if self in room_map:
-          for person in room_map:
-            person.send("%s says: %s"%(self.username, js["message"]))
+        for person in self.room:
+          print("sending to %s %s"%(person.username,js["message"]))
+          person.send({
+            "message":"%s says: %s"%(self.username, js["message"])
+          })
 
     
       return False
