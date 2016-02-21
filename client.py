@@ -32,10 +32,11 @@ class DummyClient(WebSocketClient):
 
                 options = ["search", "give"]
                 tags = ""
-                if "give" in args:
+                
+                if args.give != None:
                     option_s = "2"
                     tags = args.give
-                elif "search" in args:
+                elif args.search != None:
                     option_s = "1"
                     tags = args.search
 
