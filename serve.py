@@ -133,6 +133,7 @@ class SocketHandler(websocket.WebSocketHandler):
     
       return False
     def remove_from_maps(self):
+      tags = []
       if self in room_map:
           del room_map[self]
       if self in search_map:
@@ -154,8 +155,7 @@ class SocketHandler(websocket.WebSocketHandler):
     
     def on_close(self):
         print("Someone disconnected...")
-        tags = []
-        self.remove_from_maps(self)
+        self.remove_from_maps()
         if self in cl:
           del cl[self]
         

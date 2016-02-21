@@ -27,7 +27,7 @@ class DummyClient(WebSocketClient):
         while self.is_connected:
             if self.state == "init":
                 username = args.username
-                while len(username) < 1:
+                while username == None or len(username) < 1:
                     username = raw_input("username:")
 
                 options = ["search", "give"]
