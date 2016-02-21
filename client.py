@@ -12,7 +12,7 @@ parser.add_argument('-port', action="store", dest="port", default=9000)
 parser.add_argument('-username', action="store", dest="username")
 parser.add_argument('-give', action="store", dest="give")
 parser.add_argument('-search', action="store", dest="search")
-options = parser.parse_args()
+args = parser.parse_args()
 class DummyClient(WebSocketClient):
     def opened(self):
         logger.info("cool.")
@@ -23,23 +23,29 @@ class DummyClient(WebSocketClient):
         print(chr(27) + "[2J")
 
     def state_machine(self):
+        global args
         while self.is_connected:
             if self.state == "init":
-                username = options.username
+                username = args.username
                 while len(username) < 1:
                     username = raw_input("username:")
 
                 options = ["search", "give"]
-                if "give" in options:
+                tags = ""
+                if "give" in args:
                     option_s = "2"
+                    tags = args.give
                 elif "search" in options:
                     option_s = "1"
-                    
+                    tags = args.search
+
                 while option_s != "1" and option_s != "2": 
                     option_s = (raw_input("\nwelcome to qq %s. are you \n1) searching for help?\n2) offering help?\n3) what is qq?\n4) who's available?\n"%username))
                 option = int(option_s)-1
                 print("YOUR OPTION WAS %s"%options[option])
-                tags = raw_input("enter hashtags (space separated) keywords. example would be redis tornado linux)\n")
+                
+                while len(tags) < 1:
+                    tags = raw_input("enter hashtags (space separated) keywords. example would be redis tornado linux)\n")
 
                 send_obj = {
                     "type": "subscribe",
@@ -78,7 +84,7 @@ class DummyClient(WebSocketClient):
 
 if __name__ == '__main__':
     try:
-        ws = DummyClient("ws://%s:%s/ws"%(options.host,options.port), protocols=['http-only', 'chat'])
+        ws = DummyClient("ws://%s:%s/ws"%(args.host,args.port), protocols=['http-only', 'chat'])
         ws.connect()
         ws.run_forever()
     except KeyboardInterrupt:

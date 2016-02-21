@@ -151,12 +151,13 @@ class SocketHandler(websocket.WebSocketHandler):
           del give_inverse_map[tag][self]
           if len(give_inverse_map[tag]) == 0:
             del give_inverse_map[tag]
+    
     def on_close(self):
         print("Someone disconnected...")
         tags = []
+        self.remove_from_maps(self)
         if self in cl:
           del cl[self]
-        self.remove_from_maps(self)
         
 
 app = web.Application([
