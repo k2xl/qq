@@ -44,7 +44,7 @@ class DummyClient(WebSocketClient):
                 option = int(option_s)-1
                 print("YOUR OPTION WAS %s"%options[option])
                 
-                while len(tags) < 1:
+                while tags == None or len(tags) < 1:
                     tags = raw_input("enter hashtags (space separated) keywords. example would be redis tornado linux)\n")
 
                 send_obj = {
